@@ -15,6 +15,7 @@
 bool b_EnemyCloseToMainBob[MAXENTITIES];
 bool b_BobPistolPhase[MAXENTITIES];
 bool b_BobPistolPhaseSaid[MAXENTITIES];
+bool b_BobSeaLogic[MAXENTITIES];
 //used for gun prediction too
 
 static const char g_IntroStartSounds[][] =
@@ -124,6 +125,7 @@ void RaidbossBobTheFirst_OnMapStart()
 
 	
 	//download fixes
+	//This variant uses sea monster specific dialogue and logic when spawned with "seamonster" data
 	strcopy(data.Name, sizeof(data.Name), "?????????????");
 	strcopy(data.Plugin, sizeof(data.Plugin), "npc_bob_the_first_last_savior_sealogic");
 	data.IconCustom = false;
@@ -272,6 +274,11 @@ methodmap RaidbossBobTheFirst < CClotBody
 		public get()							{ return fl_AbilityOrAttack[this.index][1]; }
 		public set(float TempValueForProperty) 	{ fl_AbilityOrAttack[this.index][1] = TempValueForProperty; }
 	}
+	property bool m_bSeaLogic
+	{
+		public get()		{	return b_BobSeaLogic[this.index];	}
+		public set(bool value)	{	b_BobSeaLogic[this.index] = value;	}
+	}
 
 	public RaidbossBobTheFirst(float vecPos[3], float vecAng[3], int ally, const char[] data)
 	{
@@ -409,6 +416,16 @@ methodmap RaidbossBobTheFirst < CClotBody
 		npc.m_iPullCount = 0;
 		b_BobPistolPhase[npc.index] = false;
 		Zero(b_BobPistolPhaseSaid);
+		
+		// Check if this is sea monster logic
+		if(StrContains(data, "seamonster") != -1)
+		{
+			npc.m_bSeaLogic = true;
+		}
+		else
+		{
+			npc.m_bSeaLogic = false;
+		}
 
 		npc.m_iWearable1 = npc.EquipItem("weapon_bone", "models/weapons/c_models/c_claymore/c_claymore.mdl");
 		SetVariantString("1.0");
@@ -445,7 +462,7 @@ methodmap RaidbossBobTheFirst < CClotBody
 		strcopy(c_NpcName[npc.index], sizeof(c_NpcName[]), "?????????????");
 		if(SmittenNpc)
 		{
-			if(CurrentModifOn() == 1)
+			if(npc.m_bSeaLogic)
 			{
 				CPrintToChatAll("{white}%s{default}: The chaos is everywhere, we're too late, join me, dont attack.\nProve me your innocence.", NpcStats_ReturnNpcName(npc.index, true));
 			}
@@ -686,7 +703,7 @@ public void RaidbossBobTheFirst_ClotThink(int iNPC)
 		npc.SetActivity("ACT_IDLE_SHIELDZOBIE");
 		RaidModeTime += 1000.0;
 
-		if(XenoExtraLogic())
+		if(npc.m_bSeaLogic)
 		{
 			switch(i_RaidGrantExtra[npc.index])
 			{
@@ -786,7 +803,7 @@ public void RaidbossBobTheFirst_ClotThink(int iNPC)
 
 					for(int client = 1; client <= MaxClients; client++)
 					{
-						if(IsClientInGame(client) && IsPlayerAlive(client) && TeutonType[client] == TEUTON_NONE)
+						if(IsClientInGame(client) && GetClientTeam(client) == 2 && TeutonType[client] != TEUTON_WAITING && PlayerPoints[client] > 500)
 						{
 							float pos[3]; GetEntPropVector(client, Prop_Data, "m_vecAbsOrigin", pos);
 							float ang[3];
@@ -872,7 +889,7 @@ public void RaidbossBobTheFirst_ClotThink(int iNPC)
 		strcopy(c_NpcName[npc.index], sizeof(c_NpcName[]), "Bob the First");
 		SetEntProp(npc.index, Prop_Data, "m_iHealth", ReturnEntityMaxHealth(npc.index) * 17 / 20);
 
-		if(XenoExtraLogic())
+		if(npc.m_bSeaLogic)
 		{
 			switch(GetURandomInt() % 3)
 			{
@@ -943,7 +960,7 @@ public void RaidbossBobTheFirst_ClotThink(int iNPC)
 			if(b_ThisEntityIgnoredByOtherNpcsAggro[npc.index])
 			{
 				b_ThisEntityIgnoredByOtherNpcsAggro[npc.index] = false;
-				if(CurrentModifOn() == 1 && i_RaidGrantExtra[npc.index] == 1)
+				if(npc.m_bSeaLogic && i_RaidGrantExtra[npc.index] == 1)
 					CPrintToChatAll("{white}%s{default}: Nevermind then, you're one of the affected.", NpcStats_ReturnNpcName(npc.index, true));
 			}
 		}
@@ -1039,7 +1056,9 @@ public void RaidbossBobTheFirst_ClotThink(int iNPC)
 			{
 				if(npc.m_flAttackHappens < gameTime)
 				{
-					BobInitiatePunch(npc.index, vecTarget, vecMe, 0.5, 2000.0, false);
+					BobInitiatePunch(npc.index, vecTarget, vecMe, 0.5, 2000.0
+					
+, false);
 					
 					npc.m_iAttackType = 0;
 					npc.m_flAttackHappens = gameTime + 1.555;
@@ -1633,22 +1652,6 @@ void GiveOneRevive(bool ignorelimit = false)
 				i_AmountDowned[client] = 0;
 		}
 	}
-	/*
-
-	int a, entity;
-	while((entity = FindEntityByNPC(a)) != -1)
-	{
-		if(Citizen_IsIt(entity))
-		{
-			Citizen npc = view_as<Citizen>(entity);
-			if(npc.m_nDowned && npc.m_iWearable3 > 0)
-				npc.SetDowned(false);
-		}
-	}
-
-	CheckAlivePlayers();
-	WaveEndLogicExtra();
-	*/
 }
 
 static void SetupMidWave(int entity)
