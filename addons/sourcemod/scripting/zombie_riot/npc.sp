@@ -208,7 +208,8 @@ void NPC_ConfigSetup()
 	XenoSoldierMinion_OnMapStart_NPC();
 	XenoSoldierGiant_OnMapStart_NPC();
 	XenoMedicHealer_OnMapStart_NPC();
-	
+	LabSecurity_OnMapStart()
+
 	
 	
 	XenoSpyThief_OnMapStart_NPC();
