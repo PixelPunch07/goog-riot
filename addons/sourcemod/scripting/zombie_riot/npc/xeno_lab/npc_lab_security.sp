@@ -244,11 +244,11 @@ public void LabSecurity_ClotThink(int iNPC)
 		{
 			float vPredictedPos[3];
 			PredictSubjectPosition(npc, npc.m_iTarget, _, _, vPredictedPos);
-			npc.SetGoalVector()(npc.index, vPredictedPos);
+			NPC_SetGoalVector(npc.index, vPredictedPos);
 		}
 		else
 		{
-			npc.SetGoalEntity()(npc.index, npc.m_iTarget);
+			NPC_SetGoalEntity(npc.index, npc.m_iTarget);
 		}
 		
 		npc.StartPathing();
