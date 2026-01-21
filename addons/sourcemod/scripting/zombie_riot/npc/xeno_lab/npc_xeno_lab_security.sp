@@ -75,6 +75,7 @@ static void ClotPrecache()
 	PrecacheSound("weapons/physcannon/energy_sing_explosion2.wav");
 	PrecacheSound("items/powerup_pickup_plague_infected.wav");
 	PrecacheSound("mvm/mvm_tank_horn.wav");
+	PrecacheModel("models/player/heavy.mdl");
 	PrecacheModel("models/bots/heavy/bot_heavy.mdl");
 	PrecacheModel("models/workshop/player/items/heavy/spr18_tsar_platinum/spr18_tsar_platinum.mdl");
 	PrecacheModel("models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl");
@@ -144,14 +145,14 @@ methodmap XenoLabSecurity < CClotBody
 
 	public XenoLabSecurity(float vecPos[3], float vecAng[3], int ally, const char[] data)
 	{
-		// Use player heavy model as base (like Vincent) for proper animations
-		XenoLabSecurity npc = view_as<XenoLabSecurity>(CClotBody(vecPos, vecAng, "models/player/heavy.mdl", "1.55", "50000", ally, false));
+		XenoLabSecurity npc = view_as<XenoLabSecurity>(CClotBody(vecPos, vecAng, "models/player/heavy.mdl", "1.55", "50000", ally));
 		
 		i_NpcWeight[npc.index] = 4;
 		
 		FormatEx(c_HeadPlaceAttachmentGibName[npc.index], sizeof(c_HeadPlaceAttachmentGibName[]), "head");
 		
-		npc.SetActivity("ACT_MP_RUN_MELEE");
+		int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
+		if(iActivity > 0) npc.StartActivity(iActivity);
 		
 		func_NPCDeath[npc.index] = XenoLabSecurity_NPCDeath;
 		func_NPCOnTakeDamage[npc.index] = XenoLabSecurity_OnTakeDamage;
@@ -169,7 +170,7 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_flGetClosestTargetTime = 0.0;
 		npc.m_flSpeed = 200.0;
 		
-		// Raid Boss Setup
+		// Raid Boss Setup (copied from Speechless cause im dumb)
 		bool final = StrContains(data, "survival") != -1;
 		if(final)
 		{
@@ -205,27 +206,34 @@ methodmap XenoLabSecurity < CClotBody
 		
 		CPrintToChatAll("{green}Xeno Lab Security{default}: LAB PROTOCOL ACTIVE. EXTERMINATE ABNORMALITY.");
 		
-		// Make base model invisible (like Vincent)
+		// Set robot skin
+		int skin = 1;
+		SetEntProp(npc.index, Prop_Send, "m_nSkin", skin);
+		
+		// Make base model invisible
 		SetEntityRenderColor(npc.index, .a = 0);
 		SetEntityRenderMode(npc.index, RENDER_TRANSCOLOR);
 		
-		// Equip bot heavy model as wearable
-		int skin = 1;
+		// Equip bot heavy model as wearable (this is the actual robot body)
 		npc.m_iWearable1 = npc.EquipItem("head", "models/bots/heavy/bot_heavy.mdl", _, skin);
 		
-		// Apply green color to bot model
+		// Apply green robot color to bot model
 		int red = 0;
 		int green = 255;
 		int blue = 0;
 		SetEntityRenderMode(npc.m_iWearable1, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(npc.m_iWearable1, red, green, blue, 255);
 		
-		// Equip cosmetics on top
+		// Equip cosmetics on top of the robot body
 		npc.m_iWearable2 = npc.EquipItem("head", "models/workshop/player/items/heavy/spr18_tsar_platinum/spr18_tsar_platinum.mdl", _, skin);
 		npc.m_iWearable3 = npc.EquipItem("head", "models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl", _, skin);
 		npc.m_iWearable4 = npc.EquipItem("head", "models/player/items/all_class/awes_badge.mdl", _, skin);
 		
 		// Apply green color to all cosmetics
+		SetEntProp(npc.m_iWearable2, Prop_Send, "m_nSkin", skin);
+		SetEntProp(npc.m_iWearable3, Prop_Send, "m_nSkin", skin);
+		SetEntProp(npc.m_iWearable4, Prop_Send, "m_nSkin", skin);
+		
 		SetEntityRenderMode(npc.m_iWearable2, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(npc.m_iWearable2, red, green, blue, 255);
 		SetEntityRenderMode(npc.m_iWearable3, RENDER_TRANSCOLOR);
@@ -260,7 +268,7 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	npc.m_flNextDelayTime = gameTime + DEFAULT_UPDATE_DELAY_FLOAT;
 	npc.Update();
 	
-	// Update health bar for raid
+	// Update health bar for raid 
 	if(IsValidEntity(EntRefToEntIndex(RaidBossActive)) && RaidBossActive != EntIndexToEntRef(npc.index))
 	{
 		for(int EnemyLoop; EnemyLoop <= MaxClients; EnemyLoop++)
@@ -320,6 +328,12 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 					if(IsValidEnemy(npc.index, target))
 					{
 						float damageDealt = 65.0;
+						float DamageDoExtra = MultiGlobalHealth;
+						if(DamageDoExtra != 1.0)
+						{
+							DamageDoExtra *= 1.5;
+						}
+						damageDealt *= DamageDoExtra;
 						
 						SDKHooks_TakeDamage(target, npc.index, npc.index, damageDealt, DMG_CLUB, -1, _, vecHit);
 						npc.PlayMeleeHitSound();
@@ -380,7 +394,7 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 						npc.m_flAttackHappens = gameTime + STOMP_DELAY;
 						npc.m_flDoingAnimation = gameTime + STOMP_DELAY + 0.5;
 						
-						// Use sequence like Vincent does for proper animation
+						// Use sequence like Vincent does for stuff
 						npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
 						npc.SetCycle(0.05);
 						npc.SetPlaybackRate(0.5);
@@ -520,13 +534,10 @@ void RobotStompInfection(int entity, int victim, float damage, int weapon)
 			
 			ClientCommand(victim, "playgamesound items/powerup_pickup_plague_infected.wav");
 			
-			// Apply infection: deal damage over time using TF2_Ignite for consistent damage
-			TF2_IgnitePlayer(victim, victim);
-			
-			// Alternative: Use direct damage over time with a timer
+			// Apply infection: deal damage over time
 			DataPack pack;
 			CreateDataTimer(1.0, Timer_InfectionDamage, pack, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			pack.WriteCell(GetClientUserId(victim)); // Use userid instead of entity index
+			pack.WriteCell(GetClientUserId(victim));
 			pack.WriteCell(EntIndexToEntRef(entity));
 			pack.WriteCell(15); // 15 ticks
 			pack.WriteFloat(150.0); // 150 damage per tick
@@ -552,8 +563,16 @@ public Action Timer_InfectionDamage(Handle timer, DataPack pack)
 	int ticksRemaining = pack.ReadCell();
 	float damagePerTick = pack.ReadFloat();
 	
+	// Apply scaling
+	float DamageDoExtra = MultiGlobalHealth;
+	if(DamageDoExtra != 1.0)
+	{
+		DamageDoExtra *= 1.5;
+	}
+	float scaledDamage = damagePerTick * DamageDoExtra;
+	
 	// Deal damage
-	SDKHooks_TakeDamage(victim, attacker, attacker, damagePerTick, DMG_PREVENT_PHYSICS_FORCE, -1);
+	SDKHooks_TakeDamage(victim, attacker, attacker, scaledDamage, DMG_PREVENT_PHYSICS_FORCE, -1);
 	
 	// Show visual effect
 	float victimPos[3];
