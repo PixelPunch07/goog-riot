@@ -208,7 +208,7 @@ void NPC_ConfigSetup()
 	XenoSoldierMinion_OnMapStart_NPC();
 	XenoSoldierGiant_OnMapStart_NPC();
 	XenoMedicHealer_OnMapStart_NPC();
-
+	
 	
 	
 	XenoSpyThief_OnMapStart_NPC();
@@ -226,6 +226,7 @@ void NPC_ConfigSetup()
 	XenoFortifiedEarlyZombie_OnMapStart_NPC();
 	XenoPatientFew_OnMapStart_NPC();
 	XenoOuroborosEkas_OnMapStart_NPC();
+	XenoLabSecurity_OnMapStart();
 
 	
 	WanderingSpirit_OnMapStart_NPC();
@@ -329,7 +330,6 @@ void NPC_ConfigSetup()
 	Ikunagae_OnMapStart_NPC();
 	MechaSoldier_Barrager_OnMapStart_NPC();
 	NearlSwordAbility_OnMapStart_NPC();
-	Goliath_Aircraft_OnMapStart_NPC();
 
 	SeaRunner_MapStart();
 	SeaSlider_Precache();
@@ -833,6 +833,8 @@ void NPC_ConfigSetup()
 	// Rogue Mode Low Prio
 	OverlordRogue_OnMapStart_NPC();
 	RaidbossBladedance_MapStart();
+	//RaidbossBobTheFirst_Duo_OnMapStart();
+	//RaidbossBladedance_Duo_MapStart();
 	//whiteflower special:
 	Whiteflower_Boss_OnMapStart_NPC();
 	WFOuroborosEkas_OnMapStart_NPC();
@@ -1627,6 +1629,7 @@ Action NpcSpecificOnTakeDamage(int victim, int &attacker, int &inflictor, float 
 #include "npc/xeno_lab/npc_xeno_early_infected.sp"
 #include "npc/xeno_lab/npc_xeno_patient_few.sp"
 #include "npc/xeno_lab/npc_xeno_ekas_robo.sp"
+#include "npc/xeno_lab/npc_xeno_lab_security.sp"
 
 #include "npc/special/npc_sawrunner.sp"
 #include "npc/special/npc_l4d2_tank.sp"
@@ -1915,7 +1918,6 @@ Action NpcSpecificOnTakeDamage(int victim, int &attacker, int &inflictor, float 
 #include "npc/ally/iberia_barracks/npc_barrack_lighthouse_guardian.sp"
 
 #include "npc/ally/npc_nearl_sword.sp"
-#include "npc/ally/npc_goliath_aircraft.sp"
 #include "npc/ally/npc_ritualist.sp"
 
 #include "npc/respawn/npc_stalker_combine.sp"
@@ -2023,6 +2025,8 @@ Action NpcSpecificOnTakeDamage(int victim, int &attacker, int &inflictor, float 
 #include "npc/rogue/whiteflower_rogue/npc_combine_flowering_darkness.sp"
 #include "npc/rogue/whiteflower_rogue/npc_combine_raging_blader.sp"
 #include "npc/raidmode_bosses/npc_bladedance.sp"
+//#include "npc/raidmode_bosses/bossrush_extra/npc_bob_the_first_duo.sp"
+//#include "npc/raidmode_bosses/bossrush_extra/npc_bladedance_duo.sp"
 #include "npc/raidmode_bosses/npc_the_messenger.sp"
 #include "npc/raidmode_bosses/npc_chaos_kahmlstein.sp"
 
