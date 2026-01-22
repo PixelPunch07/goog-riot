@@ -151,13 +151,6 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_iStepNoiseType = STEPSOUND_GIANT;
 		npc.m_iNpcStepVariation = STEPTYPE_ROBOT;
 		
-		// took the raid stuff from speechless
-		bool final = StrContains(data, "final_item") != -1;
-		if(final)
-		{
-			i_RaidGrantExtra[npc.index] = 1;
-		}
-		
 		if(!IsValidEntity(RaidBossActive))
 		{
 			RaidModeScaling = 0.0;	// Set to 0.0 for superboss (no scaling)
@@ -171,11 +164,8 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_bThisNpcIsABoss = true;
 		
 		// Security protocol activation messages
-		if(i_RaidGrantExtra[npc.index] == 1)
-		{
-			CPrintToChatAll("{red}[XENO LAB SECURITY PROTOCOL ACTIVATED]");
-			CPrintToChatAll("{crimson}Xeno Lab Security{default}: INTRUDERS DETECTED. INITIATING CONTAINMENT PROCEDURES.");
-		}
+		CPrintToChatAll("{red}[XENO LAB SECURITY PROTOCOL ACTIVATED]");
+		CPrintToChatAll("{crimson}Xeno Lab Security{default}: INTRUDERS DETECTED. INITIATING CONTAINMENT PROCEDURES.");
 		
 		npc.m_flSpeed = 300.0;
 		npc.m_flGetClosestTargetTime = 0.0;
@@ -368,10 +358,7 @@ public void XenoLabSecurity_NPCDeath(int entity)
 	if(IsValidEntity(npc.m_iWearable4))
 		RemoveEntity(npc.m_iWearable4);
 	
-	if(i_RaidGrantExtra[npc.index] == 1)
-	{
-		CPrintToChatAll("{crimson}Xeno Lab Security{default}: CRITICAL SYSTEM FAILURE... CONTAINMENT... BREACH...");
-	}
+	CPrintToChatAll("{crimson}Xeno Lab Security{default}: CRITICAL SYSTEM FAILURE... CONTAINMENT... BREACH...");
 }
 
 void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float distance)
