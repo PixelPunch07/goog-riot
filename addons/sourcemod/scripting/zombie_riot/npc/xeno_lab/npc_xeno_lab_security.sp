@@ -49,7 +49,7 @@ float SecurityInfectionDelay()
 	return SECURITY_CIRCLE_DELAY;
 }
 
-void XenoLabSecurity_OnMapStart_NPC()
+void XenoLabSecurity_OnMapStart()
 {
 	NPCData data;
 	strcopy(data.Name, sizeof(data.Name), "Xeno Lab Security");
@@ -74,6 +74,9 @@ static void ClotPrecache()
 	for (int i = 0; i < (sizeof(g_SecurityAlertSounds)); i++) { PrecacheSound(g_SecurityAlertSounds[i]); }
 	
 	PrecacheModel(SECURITY_MODEL);
+	PrecacheModel("models/workshop/player/items/heavy/spr18_tsar_platinum/spr18_tsar_platinum.mdl");
+	PrecacheModel("models/workshop/player/items/heavy/spr18_starboard_crusader/spr18_starboard_crusader.mdl");
+	PrecacheModel("models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl");
 	PrecacheSound("weapons/cow_mangler_explode.wav");
 }
 
@@ -148,8 +151,8 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_iStepNoiseType = STEPSOUND_GIANT;
 		npc.m_iNpcStepVariation = STEPTYPE_ROBOT;
 		
-		// Raid boss setup (from Speechless cause im a little dumb...)
-		bool final = StrContains(data, "xenotime") != -1;
+		// took the raid stuff from speechless (sorry if you get upset)
+		bool final = StrContains(data, "final_item") != -1;
 		if(final)
 		{
 			i_RaidGrantExtra[npc.index] = 1;
@@ -158,7 +161,7 @@ methodmap XenoLabSecurity < CClotBody
 		if(!IsValidEntity(RaidBossActive))
 		{
 			RaidBossActive = EntIndexToEntRef(npc.index);
-			RaidModeTime = GetGameTime(npc.index) + 300.0;  // 5 minute timer
+			RaidModeTime = GetGameTime(npc.index) + 99999.0;  // NO TIMER FUCK YOU
 			RaidAllowsBuildings = true;
 			RaidModeScaling = MultiGlobalHealth;
 			if(RaidModeScaling == 1.0)
@@ -186,11 +189,17 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_flMeleeArmor = 1.1;
 		npc.m_flRangedArmor = 0.85;
 		
-		// Robot cosmetics (no minigun)
+		// Robot cosmetics with green color scheme
 		npc.m_iWearable1 = npc.EquipItem("head", "models/workshop/player/items/heavy/robo_heavy_chief/robo_heavy_chief.mdl");
+		npc.m_iWearable2 = npc.EquipItem("head", "models/workshop/player/items/heavy/spr18_tsar_platinum/spr18_tsar_platinum.mdl");
+		npc.m_iWearable3 = npc.EquipItem("head", "models/workshop/player/items/heavy/spr18_starboard_crusader/spr18_starboard_crusader.mdl");
+		npc.m_iWearable4 = npc.EquipItem("head", "models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl");
 		
 		SetEntityRenderColor(npc.index, 50, 200, 50, 255);
 		SetEntityRenderColor(npc.m_iWearable1, 50, 200, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable2, 50, 200, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable3, 50, 200, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable4, 50, 200, 50, 255);
 		
 		npc.PlaySecurityAlertSound();
 		npc.StartPathing();
@@ -329,6 +338,10 @@ public void XenoLabSecurity_NPCDeath(int entity)
 		RemoveEntity(npc.m_iWearable1);
 	if(IsValidEntity(npc.m_iWearable2))
 		RemoveEntity(npc.m_iWearable2);
+	if(IsValidEntity(npc.m_iWearable3))
+		RemoveEntity(npc.m_iWearable3);
+	if(IsValidEntity(npc.m_iWearable4))
+		RemoveEntity(npc.m_iWearable4);
 	
 	if(i_RaidGrantExtra[npc.index] == 1)
 	{
@@ -404,7 +417,7 @@ void Security_DoInfectionCircle(int entity)
 	Security_Loc[2] += 45.0;
 	
 	// Create large warning circles (bigger than Calmaticus)
-	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE * 4.0, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 50, 255, 50, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
+	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE *3.0, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 50, 255, 50, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
 	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE * 3.0, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 100, 255, 100, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
 	
 	float Security_Ang[3];
@@ -429,8 +442,8 @@ public Action Security_DoInfectionCircleInternal(Handle timer, DataPack pack)
 	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", Security_Loc);
 	Security_Loc[2] += 10.0;
 	
-	// Damage all enemies in range
-	Explode_Logic_Custom(400.0, entity, entity, -1, Security_Loc, SECURITY_INFECTION_RANGE * 3.5, _, _, true, _, _, 1.0, SecurityHitInfection);
+	// Damage all enemies in range (matches visible ring size)
+	Explode_Logic_Custom(400.0, entity, entity, -1, Security_Loc, SECURITY_INFECTION_RANGE * 3.0, _, _, true, _, _, 1.0, SecurityHitInfection);
 	
 	int particle = ParticleEffectAt(Security_Loc, "green_wof_sparks", 1.5);
 	float Ang[3];
@@ -449,7 +462,7 @@ void SecurityHitInfection(int entity, int victim, float damage, int weapon)
 		float HudY = -1.0;
 		float HudX = -1.0;
 		SetHudTextParams(HudX, HudY, 3.0, 50, 255, 50, 255);
-		ShowHudText(victim, -1, "You have been infected by Xeno Security!");
+		ShowHudText(victim, -1, "YOU'VE BEEN INFECTED");
 		ClientCommand(victim, "playgamesound items/cart_explode.wav");
 		
 		// Apply damage over time
