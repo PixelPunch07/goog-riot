@@ -242,43 +242,41 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	
 	npc.m_flNextThinkTime = GetGameTime(npc.index) + 0.1;
 	
+	// Check if currently doing infection animation - if so, skip everything else
+	if(npc.m_flDoingAnimation > GetGameTime(npc.index) && npc.m_flDoingAnimation > npc.m_flNextRangedSpecialAttack)
+	{
+		// Still doing infection animation, don't do anything else
+		return;
+	}
+	
 	// Infection circle ability with animation
 	if(npc.m_flNextRangedSpecialAttack < GetGameTime(npc.index))
-{
-	if(npc.m_flDoingAnimation == 0.0)
 	{
 		// Start animation
 		npc.m_flSpeed = 0.0;
 		npc.m_bisWalking = false;
 		npc.m_iChanged_WalkCycle = 3;
 		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
-		npc.SetCycle(0.05);
+		npc.SetCycle(0.01);
 		npc.SetPlaybackRate(0.75);
 		npc.StopPathing();
 		npc.PlayAngerSound();
 		
-		// Set animation duration (adjust this based on how long you want the taunt)
-		npc.m_flDoingAnimation = GetGameTime(npc.index) + 1.0;
+		// Set animation duration - use a unique high value to distinguish from melee animation
+		float animDuration = 2.0;
+		npc.m_flDoingAnimation = GetGameTime(npc.index) + animDuration;
+		
+		// Schedule the infection to happen when animation finishes
+		npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + animDuration + 12.0;
+		
+		// Trigger the infection after animation duration
+		DataPack pack;
+		CreateDataTimer(animDuration, Timer_SecurityFinishAnimation, pack, TIMER_FLAG_NO_MAPCHANGE);
+		pack.WriteCell(EntIndexToEntRef(npc.index));
+		
+		return; // Don't do anything else this frame
 	}
-	else if(npc.m_flDoingAnimation < GetGameTime(npc.index))
-	{
-		// Animation finished, trigger infection and resume
-		npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + 12.0;
-		npc.m_flDoingAnimation = 0.0;
-		Security_DoInfectionCircle(npc.index);
-		npc.m_flSpeed = 200.0;
-		npc.m_bisWalking = true;
-		int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
-		if(iActivity > 0) npc.StartActivity(iActivity);
-		npc.StartPathing();
-	}
-	else
-	{
-		// Still animating, don't do anything else
-		return;
-		}
-	}
-
+	
 	if(npc.m_flGetClosestTargetTime < GetGameTime(npc.index))
 	{
 		npc.m_iTarget = GetClosestTarget(npc.index);
@@ -311,6 +309,32 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	}
 	
 	npc.PlayIdleSound();
+}
+
+public Action Timer_SecurityFinishAnimation(Handle timer, DataPack pack)
+{
+	pack.Reset();
+	int entity = EntRefToEntIndex(pack.ReadCell());
+	
+	if(!IsValidEntity(entity))
+		return Plugin_Stop;
+	
+	XenoLabSecurity npc = view_as<XenoLabSecurity>(entity);
+	
+	// Trigger infection
+	Security_DoInfectionCircle(npc.index);
+	
+	// Resume normal movement
+	npc.m_flSpeed = 200.0;
+	npc.m_bisWalking = true;
+	int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
+	if(iActivity > 0) npc.StartActivity(iActivity);
+	npc.StartPathing();
+	
+	// Clear animation flag
+	npc.m_flDoingAnimation = 0.0;
+	
+	return Plugin_Stop;
 }
 
 public Action XenoLabSecurity_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
@@ -355,6 +379,10 @@ public void XenoLabSecurity_NPCDeath(int entity)
 
 void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float distance)
 {
+	// Don't attack during infection animation
+	if(npc.m_flDoingAnimation > gameTime && npc.m_flDoingAnimation > npc.m_flNextRangedSpecialAttack)
+		return;
+	
 	if(npc.m_flAttackHappens)
 	{
 		if(npc.m_flAttackHappens < gameTime)
@@ -404,12 +432,11 @@ void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float
 				npc.AddGesture("ACT_MP_ATTACK_STAND_MELEE");
 				
 				npc.m_flAttackHappens = gameTime + 0.4;
-				npc.m_flDoingAnimation = gameTime + 0.4;
+				// Don't set m_flDoingAnimation here - only for infection
 				npc.m_flNextMeleeAttack = gameTime + 1.2;
 			}
 		}
 	}
-	
 }
 
 #define MAX_SECURITY_TARGETS 64
