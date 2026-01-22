@@ -244,38 +244,41 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	
 	// Infection circle ability with animation
 	if(npc.m_flNextRangedSpecialAttack < GetGameTime(npc.index))
+{
+	if(npc.m_flDoingAnimation == 0.0)
 	{
-		if(npc.m_flDoingAnimation == 0.0)
-		{
-			// Start animation
+		// Start animation
 		npc.m_flSpeed = 0.0;
 		npc.m_bisWalking = false;
 		npc.m_iChanged_WalkCycle = 3;
 		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
 		npc.SetCycle(0.05);
-		npc.SetPlaybackRate(0.5);
+		npc.SetPlaybackRate(0.75);
 		npc.StopPathing();
 		npc.PlayAngerSound();
-		}
-		else if(npc.m_flDoingAnimation < GetGameTime(npc.index))
-		{
-			// Animation finished, trigger infection and resume
-			npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + 12.0;
-			npc.m_flDoingAnimation = 0.0;
-			Security_DoInfectionCircle(npc.index);
-			npc.m_flSpeed = 200.0;
-			npc.m_bisWalking = true;
-			int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
-			if(iActivity > 0) npc.StartActivity(iActivity);
-			npc.StartPathing();
-		}
-		else
-		{
-			// Still animating, don't do anything else
-			return;
+		
+		// Set animation duration (adjust this based on how long you want the taunt)
+		npc.m_flDoingAnimation = GetGameTime(npc.index) + 1.0;
+	}
+	else if(npc.m_flDoingAnimation < GetGameTime(npc.index))
+	{
+		// Animation finished, trigger infection and resume
+		npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + 12.0;
+		npc.m_flDoingAnimation = 0.0;
+		Security_DoInfectionCircle(npc.index);
+		npc.m_flSpeed = 200.0;
+		npc.m_bisWalking = true;
+		int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
+		if(iActivity > 0) npc.StartActivity(iActivity);
+		npc.StartPathing();
+	}
+	else
+	{
+		// Still animating, don't do anything else
+		return;
 		}
 	}
-	
+
 	if(npc.m_flGetClosestTargetTime < GetGameTime(npc.index))
 	{
 		npc.m_iTarget = GetClosestTarget(npc.index);
