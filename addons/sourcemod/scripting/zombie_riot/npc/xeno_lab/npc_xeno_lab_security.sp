@@ -26,8 +26,7 @@ static char g_MeleeHitSounds[][] =
 
 static char g_MeleeAttackSounds[][] =
 {
-	"vo/heavy_specialcompleted01.mp3",
-	"vo/heavy_specialcompleted02.mp3"
+	"ui/item_robot_arm_drop.wav"
 };
 
 static char g_AngerSounds[][] =
@@ -249,12 +248,14 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 		if(npc.m_flDoingAnimation == 0.0)
 		{
 			// Start animation
-			npc.SetActivity("taunt_soviet_strongarm_end");
-			npc.m_flDoingAnimation = GetGameTime(npc.index) + 2.5;
-			npc.StopPathing();
-			npc.m_bisWalking = false;
-			npc.m_flSpeed = 0.0;
-			npc.PlayAngerSound();
+		npc.m_flSpeed = 0.0;
+		npc.m_bisWalking = false;
+		npc.m_iChanged_WalkCycle = 3;
+		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
+		npc.SetCycle(0.05);
+		npc.SetPlaybackRate(0.5);
+		npc.StopPathing();
+		npc.PlayAngerSound();
 		}
 		else if(npc.m_flDoingAnimation < GetGameTime(npc.index))
 		{
