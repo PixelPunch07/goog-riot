@@ -151,6 +151,13 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_iStepNoiseType = STEPSOUND_GIANT;
 		npc.m_iNpcStepVariation = STEPTYPE_ROBOT;
 		
+		// took the raid stuff from speechless
+		bool final = StrContains(data, "final_item") != -1;
+		if(final)
+		{
+			i_RaidGrantExtra[npc.index] = 1;
+		}
+		
 		if(!IsValidEntity(RaidBossActive))
 		{
 			RaidModeScaling = 0.0;	// Set to 0.0 for superboss (no scaling)
@@ -164,8 +171,11 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_bThisNpcIsABoss = true;
 		
 		// Security protocol activation messages
-		CPrintToChatAll("{red}[XENO LAB SECURITY PROTOCOL ACTIVATED]");
-		CPrintToChatAll("{crimson}Xeno Lab Security{default}: INTRUDERS DETECTED. INITIATING CONTAINMENT PROCEDURES.");
+		if(i_RaidGrantExtra[npc.index] == 1)
+		{
+			CPrintToChatAll("{red}[XENO LAB SECURITY PROTOCOL ACTIVATED]");
+			CPrintToChatAll("{crimson}Xeno Lab Security{default}: INTRUDERS DETECTED. INITIATING CONTAINMENT PROCEDURES.");
+		}
 		
 		npc.m_flSpeed = 300.0;
 		npc.m_flGetClosestTargetTime = 0.0;
@@ -214,7 +224,7 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 		func_NPCThink[npc.index] = INVALID_FUNCTION;
 		return;
 	}
-	
+
 	if(npc.m_blPlayHurtAnimation)
 	{
 		npc.AddGesture("ACT_MP_GESTURE_FLINCH_CHEST", false);
@@ -230,7 +240,7 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	npc.m_flNextThinkTime = GetGameTime(npc.index) + 0.1;
 	
 	// Check if currently doing infection animation - if so, skip everything else
-	if(npc.m_flDoingAnimation > GetGameTime(npc.index) && npc.m_flDoingAnimation > npc.m_flNextRangedSpecialAttack)
+	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
 	{
 		// Still doing infection animation, don't do anything else
 		return;
@@ -249,11 +259,11 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 		npc.StopPathing();
 		npc.PlayAngerSound();
 		
-		// Set animation duration - use a unique high value to distinguish from melee animation
+		// Set animation duration
 		float animDuration = 2.0;
 		npc.m_flDoingAnimation = GetGameTime(npc.index) + animDuration;
 		
-		// Schedule the infection to happen when animation finishes
+		// Schedule the next infection
 		npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + animDuration + 12.0;
 		
 		// Trigger the infection after animation duration
@@ -358,13 +368,16 @@ public void XenoLabSecurity_NPCDeath(int entity)
 	if(IsValidEntity(npc.m_iWearable4))
 		RemoveEntity(npc.m_iWearable4);
 	
-	CPrintToChatAll("{crimson}Xeno Lab Security{default}: CRITICAL SYSTEM FAILURE... CONTAINMENT... BREACH...");
+	if(i_RaidGrantExtra[npc.index] == 1)
+	{
+		CPrintToChatAll("{crimson}Xeno Lab Security{default}: CRITICAL SYSTEM FAILURE... CONTAINMENT... BREACH...");
+	}
 }
 
 void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float distance)
 {
 	// Don't attack during infection animation
-	if(npc.m_flDoingAnimation > gameTime && npc.m_flDoingAnimation > npc.m_flNextRangedSpecialAttack)
+	if(npc.m_flDoingAnimation > gameTime)
 		return;
 	
 	if(npc.m_flAttackHappens)
@@ -416,7 +429,6 @@ void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float
 				npc.AddGesture("ACT_MP_ATTACK_STAND_MELEE");
 				
 				npc.m_flAttackHappens = gameTime + 0.4;
-				// dont set m_flDoingAnimation here - only for infection
 				npc.m_flNextMeleeAttack = gameTime + 1.2;
 			}
 		}
