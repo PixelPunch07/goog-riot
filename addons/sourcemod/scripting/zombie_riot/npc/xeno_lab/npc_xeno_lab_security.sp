@@ -49,7 +49,7 @@ float SecurityInfectionDelay()
 	return SECURITY_CIRCLE_DELAY;
 }
 
-void XenoLabSecurity_OnMapStart()
+void XenoLabSecurity_OnMapStart_NPC()
 {
 	NPCData data;
 	strcopy(data.Name, sizeof(data.Name), "Xeno Lab Security");
