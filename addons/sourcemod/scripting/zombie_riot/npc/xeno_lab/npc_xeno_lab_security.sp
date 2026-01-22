@@ -142,6 +142,7 @@ methodmap XenoLabSecurity < CClotBody
 		func_NPCDeath[npc.index] = XenoLabSecurity_NPCDeath;
 		func_NPCOnTakeDamage[npc.index] = XenoLabSecurity_OnTakeDamage;
 		func_NPCThink[npc.index] = XenoLabSecurity_ClotThink;
+		func_NPCAnimEvent[npc.index] = INVALID_FUNCTION;
 		
 		npc.m_flNextMeleeAttack = 0.0;
 		npc.m_flAttackHappens = 0.0;
@@ -150,7 +151,7 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_iStepNoiseType = STEPSOUND_GIANT;
 		npc.m_iNpcStepVariation = STEPTYPE_ROBOT;
 		
-		// took the raid stuff from speechless (sorry if you get upset)
+		// took the raid stuff from speechless
 		bool final = StrContains(data, "final_item") != -1;
 		if(final)
 		{
@@ -159,14 +160,10 @@ methodmap XenoLabSecurity < CClotBody
 		
 		if(!IsValidEntity(RaidBossActive))
 		{
+			RaidModeScaling = 0.0;	// Set to 0.0 for superboss (no scaling)
 			RaidBossActive = EntIndexToEntRef(npc.index);
-			RaidModeTime = GetGameTime(npc.index) + 99999.0;  // NO TIMER FUCK YOU
+			RaidModeTime = GetGameTime(npc.index) + 9000.0;
 			RaidAllowsBuildings = true;
-			RaidModeScaling = MultiGlobalHealth;
-			if(RaidModeScaling == 1.0)
-				RaidModeScaling = 0.0;
-			else
-				RaidModeScaling *= 2.0;  // Harder scaling
 		}
 		
 		npc.m_iHealthBar = 1;
@@ -180,7 +177,7 @@ methodmap XenoLabSecurity < CClotBody
 			CPrintToChatAll("{crimson}Xeno Lab Security{default}: INTRUDERS DETECTED. INITIATING CONTAINMENT PROCEDURES.");
 		}
 		
-		npc.m_flSpeed = 200.0;
+		npc.m_flSpeed = 300.0;
 		npc.m_flGetClosestTargetTime = 0.0;
 		npc.m_flNextRangedAttack = 0.0;
 		npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + 10.0;  // First infection circle
@@ -195,10 +192,10 @@ methodmap XenoLabSecurity < CClotBody
 		npc.m_iWearable4 = npc.EquipItem("head", "models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl");
 		
 		SetEntityRenderColor(npc.index, 50, 200, 50, 255);
-		SetEntityRenderColor(npc.m_iWearable1, 50, 200, 50, 255);
-		SetEntityRenderColor(npc.m_iWearable2, 50, 200, 50, 255);
-		SetEntityRenderColor(npc.m_iWearable3, 50, 200, 50, 255);
-		SetEntityRenderColor(npc.m_iWearable4, 50, 200, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable1, 50, 255, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable2, 50, 255, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable3, 50, 255, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable4, 50, 255, 50, 255);
 		
 		npc.PlaySecurityAlertSound();
 		npc.StartPathing();
@@ -325,7 +322,7 @@ public Action Timer_SecurityFinishAnimation(Handle timer, DataPack pack)
 	Security_DoInfectionCircle(npc.index);
 	
 	// Resume normal movement
-	npc.m_flSpeed = 200.0;
+	npc.m_flSpeed = 300.0;
 	npc.m_bisWalking = true;
 	int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
 	if(iActivity > 0) npc.StartActivity(iActivity);
@@ -432,7 +429,7 @@ void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float
 				npc.AddGesture("ACT_MP_ATTACK_STAND_MELEE");
 				
 				npc.m_flAttackHappens = gameTime + 0.4;
-				// Don't set m_flDoingAnimation here - only for infection
+				// dont set m_flDoingAnimation here - only for infection
 				npc.m_flNextMeleeAttack = gameTime + 1.2;
 			}
 		}
