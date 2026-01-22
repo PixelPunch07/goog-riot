@@ -8,55 +8,55 @@ static char g_DeathSounds[][] =
 
 static char g_HurtSounds[][] =
 {
-	"mvm/giant_heavy/giant_heavy_pain01.wav",
-	"mvm/giant_heavy/giant_heavy_pain02.wav"
+	"mvm/giant_heavy/giant_heavy_pain.wav"
+};
+
+static char g_IdleSounds[][] =
+{
+	"mvm/giant_heavy/giant_heavy_entrance.wav"
 };
 
 static char g_MeleeHitSounds[][] =
 {
-	"weapons/fists_punch.wav"
+	"weapons/metal_gloves_hit_flesh1.wav",
+	"weapons/metal_gloves_hit_flesh2.wav",
+	"weapons/metal_gloves_hit_flesh3.wav",
+	"weapons/metal_gloves_hit_flesh4.wav"
 };
 
 static char g_MeleeAttackSounds[][] =
 {
-	"mvm/giant_heavy/giant_heavy_attack01.wav",
-	"mvm/giant_heavy/giant_heavy_attack02.wav"
+	"vo/heavy_specialcompleted01.mp3",
+	"vo/heavy_specialcompleted02.mp3"
 };
 
-static char g_StompSounds[][] =
+static char g_AngerSounds[][] =
 {
-	"mvm/giant_heavy/giant_heavy_step01.wav",
-	"mvm/giant_heavy/giant_heavy_step02.wav",
-	"mvm/giant_heavy/giant_heavy_step03.wav",
-	"mvm/giant_heavy/giant_heavy_step04.wav"
+	"mvm/giant_heavy/giant_heavy_gunwindup.wav"
 };
 
-static char g_PrepareSlamSound[][] =
+static char g_SecurityAlertSounds[][] =
 {
-	"vo/mvm/mght/heavy_mvm_m_incoming01.mp3",
-	"vo/mvm/mght/heavy_mvm_m_incoming02.mp3",
-	"vo/mvm/mght/heavy_mvm_m_incoming03.mp3",
+	"ambient/alarms/klaxon1.wav"
 };
 
-static char g_SlamSound[][] =
+#define SECURITY_MODEL "models/bots/heavy/bot_heavy.mdl"
+#define SECURITY_INFECTION_RANGE 250.0  // Bigger than Calmaticus's 150.0
+#define SECURITY_CIRCLE_DELAY 1.0
+
+float SecurityInfectionDelay()
 {
-	"weapons/crossbow/bolt_fly4.wav",
-};
-
-#define STOMP_RANGE 350.0
-#define STOMP_DAMAGE 450.0
-#define STOMP_DELAY 1.5
-
-static float f_RobotStompInfectionImmunity[MAXENTITIES];
+	return SECURITY_CIRCLE_DELAY;
+}
 
 void XenoLabSecurity_OnMapStart_NPC()
 {
 	NPCData data;
 	strcopy(data.Name, sizeof(data.Name), "Xeno Lab Security");
 	strcopy(data.Plugin, sizeof(data.Plugin), "npc_xeno_lab_security");
-	strcopy(data.Icon, sizeof(data.Icon), "heavy_champ");
+	strcopy(data.Icon, sizeof(data.Icon), "heavy_giant");
 	data.IconCustom = false;
-	data.Flags = MVM_CLASS_FLAG_MINIBOSS;
+	data.Flags = MVM_CLASS_FLAG_MINIBOSS|MVM_CLASS_FLAG_ALWAYSCRIT;
 	data.Category = Type_Raid;
 	data.Func = ClotSummon;
 	data.Precache = ClotPrecache;
@@ -67,19 +67,14 @@ static void ClotPrecache()
 {
 	for (int i = 0; i < (sizeof(g_DeathSounds)); i++) { PrecacheSound(g_DeathSounds[i]); }
 	for (int i = 0; i < (sizeof(g_HurtSounds)); i++) { PrecacheSound(g_HurtSounds[i]); }
+	for (int i = 0; i < (sizeof(g_IdleSounds)); i++) { PrecacheSound(g_IdleSounds[i]); }
 	for (int i = 0; i < (sizeof(g_MeleeHitSounds)); i++) { PrecacheSound(g_MeleeHitSounds[i]); }
 	for (int i = 0; i < (sizeof(g_MeleeAttackSounds)); i++) { PrecacheSound(g_MeleeAttackSounds[i]); }
-	for (int i = 0; i < (sizeof(g_StompSounds)); i++) { PrecacheSound(g_StompSounds[i]); }
-	for (int i = 0; i < (sizeof(g_PrepareSlamSound)); i++) { PrecacheSound(g_PrepareSlamSound[i]); }
-	for (int i = 0; i < (sizeof(g_SlamSound)); i++) { PrecacheSound(g_SlamSound[i]); }
-	PrecacheSound("weapons/physcannon/energy_sing_explosion2.wav");
-	PrecacheSound("items/powerup_pickup_plague_infected.wav");
-	PrecacheSound("mvm/mvm_tank_horn.wav");
-	PrecacheModel("models/player/heavy.mdl");
-	PrecacheModel("models/bots/heavy/bot_heavy.mdl");
-	PrecacheModel("models/workshop/player/items/heavy/spr18_tsar_platinum/spr18_tsar_platinum.mdl");
-	PrecacheModel("models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl");
-	PrecacheModel("models/player/items/all_class/awes_badge.mdl");
+	for (int i = 0; i < (sizeof(g_AngerSounds)); i++) { PrecacheSound(g_AngerSounds[i]); }
+	for (int i = 0; i < (sizeof(g_SecurityAlertSounds)); i++) { PrecacheSound(g_SecurityAlertSounds[i]); }
+	
+	PrecacheModel(SECURITY_MODEL);
+	PrecacheSound("weapons/cow_mangler_explode.wav");
 }
 
 static any ClotSummon(int client, float vecPos[3], float vecAng[3], int team, const char[] data)
@@ -89,66 +84,54 @@ static any ClotSummon(int client, float vecPos[3], float vecAng[3], int team, co
 
 methodmap XenoLabSecurity < CClotBody
 {
-	property bool m_bNextAttackIsStomp
+	public void PlayIdleSound()
 	{
-		public get()
-		{
-			return view_as<bool>(i_TimesSummoned[this.index]);
-		}
-		public set(bool value)
-		{
-			i_TimesSummoned[this.index] = view_as<int>(value);
-		}
+		if(this.m_flNextIdleSound > GetGameTime(this.index))
+			return;
+		
+		EmitSoundToAll(g_IdleSounds[GetRandomInt(0, sizeof(g_IdleSounds) - 1)], this.index, SNDCHAN_VOICE, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
+		this.m_flNextIdleSound = GetGameTime(this.index) + GetRandomFloat(12.0, 24.0);
 	}
 	
 	public void PlayHurtSound()
 	{
 		if(this.m_flNextHurtSound > GetGameTime(this.index))
 			return;
-		
-		EmitSoundToAll(g_HurtSounds[GetRandomInt(0, sizeof(g_HurtSounds) - 1)], this.index, SNDCHAN_VOICE, NORMAL_ZOMBIE_SOUNDLEVEL, _, NORMAL_ZOMBIE_VOLUME);
-		this.m_flNextHurtSound = GetGameTime(this.index) + 0.4;
+			
+		EmitSoundToAll(g_HurtSounds[GetRandomInt(0, sizeof(g_HurtSounds) - 1)], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
+		this.m_flNextHurtSound = GetGameTime(this.index) + GetRandomFloat(0.6, 1.6);
 	}
 	
 	public void PlayDeathSound()
 	{
-		EmitSoundToAll(g_DeathSounds[GetRandomInt(0, sizeof(g_DeathSounds) - 1)], this.index, SNDCHAN_VOICE, NORMAL_ZOMBIE_SOUNDLEVEL, _, NORMAL_ZOMBIE_VOLUME);
+		EmitSoundToAll(g_DeathSounds[GetRandomInt(0, sizeof(g_DeathSounds) - 1)], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
 	}
 	
 	public void PlayMeleeSound()
 	{
-		EmitSoundToAll(g_MeleeAttackSounds[GetRandomInt(0, sizeof(g_MeleeAttackSounds) - 1)], this.index, SNDCHAN_VOICE, NORMAL_ZOMBIE_SOUNDLEVEL, _, NORMAL_ZOMBIE_VOLUME);
+		EmitSoundToAll(g_MeleeAttackSounds[GetRandomInt(0, sizeof(g_MeleeAttackSounds) - 1)], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
 	}
 	
-	public void PlayStompSound()
+	public void PlayAngerSound()
 	{
-		EmitSoundToAll(g_StompSounds[GetRandomInt(0, sizeof(g_StompSounds) - 1)], this.index, SNDCHAN_STATIC, NORMAL_ZOMBIE_SOUNDLEVEL, _, NORMAL_ZOMBIE_VOLUME);
+		EmitSoundToAll(g_AngerSounds[GetRandomInt(0, sizeof(g_AngerSounds) - 1)], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
+	}
+	
+	public void PlaySecurityAlertSound()
+	{
+		EmitSoundToAll(g_SecurityAlertSounds[GetRandomInt(0, sizeof(g_SecurityAlertSounds) - 1)], this.index, SNDCHAN_AUTO, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
 	}
 	
 	public void PlayMeleeHitSound()
 	{
-		EmitSoundToAll(g_MeleeHitSounds[GetRandomInt(0, sizeof(g_MeleeHitSounds) - 1)], this.index, SNDCHAN_STATIC, NORMAL_ZOMBIE_SOUNDLEVEL, _, NORMAL_ZOMBIE_VOLUME);
+		EmitSoundToAll(g_MeleeHitSounds[GetRandomInt(0, sizeof(g_MeleeHitSounds) - 1)], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, BOSS_ZOMBIE_VOLUME);
 	}
 	
-	public void PlayPrepareSlamSound()
-	{
-		int Sound = GetRandomInt(0, sizeof(g_PrepareSlamSound) - 1);
-		EmitSoundToAll("mvm/mvm_tank_horn.wav", _, SNDCHAN_STATIC, 80, _, 0.65, 90);
-		EmitSoundToAll(g_PrepareSlamSound[Sound], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, 90, BOSS_ZOMBIE_VOLUME);
-	}
-	
-	public void PlaySlamSound()
-	{
-		int pitch = GetRandomInt(70, 80);
-		EmitSoundToAll(g_SlamSound[GetRandomInt(0, sizeof(g_SlamSound) - 1)], this.index, SNDCHAN_STATIC, RAIDBOSS_ZOMBIE_SOUNDLEVEL, _, 0.7, pitch);
-	}
-
 	public XenoLabSecurity(float vecPos[3], float vecAng[3], int ally, const char[] data)
 	{
-		XenoLabSecurity npc = view_as<XenoLabSecurity>(CClotBody(vecPos, vecAng, "models/player/heavy.mdl", "1.55", "50000", ally));
+		XenoLabSecurity npc = view_as<XenoLabSecurity>(CClotBody(vecPos, vecAng, SECURITY_MODEL, "1.75", "50000", ally, false, true, true, true));
 		
 		i_NpcWeight[npc.index] = 4;
-		
 		FormatEx(c_HeadPlaceAttachmentGibName[npc.index], sizeof(c_HeadPlaceAttachmentGibName[]), "head");
 		
 		int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
@@ -157,21 +140,16 @@ methodmap XenoLabSecurity < CClotBody
 		func_NPCDeath[npc.index] = XenoLabSecurity_NPCDeath;
 		func_NPCOnTakeDamage[npc.index] = XenoLabSecurity_OnTakeDamage;
 		func_NPCThink[npc.index] = XenoLabSecurity_ClotThink;
-
+		
 		npc.m_flNextMeleeAttack = 0.0;
 		npc.m_flAttackHappens = 0.0;
-		npc.m_bNextAttackIsStomp = false;
 		
 		npc.m_iBleedType = BLEEDTYPE_METAL;
-		npc.m_iStepNoiseType = STEPSOUND_GIANT;	
+		npc.m_iStepNoiseType = STEPSOUND_GIANT;
 		npc.m_iNpcStepVariation = STEPTYPE_ROBOT;
-
-		npc.m_iTarget = 0;
-		npc.m_flGetClosestTargetTime = 0.0;
-		npc.m_flSpeed = 200.0;
 		
-		// Raid Boss Setup (copied from Speechless cause im dumb)
-		bool final = StrContains(data, "survival") != -1;
+		// Raid boss setup (from Speechless cause im a little dumb...)
+		bool final = StrContains(data, "xenotime") != -1;
 		if(final)
 		{
 			i_RaidGrantExtra[npc.index] = 1;
@@ -180,67 +158,41 @@ methodmap XenoLabSecurity < CClotBody
 		if(!IsValidEntity(RaidBossActive))
 		{
 			RaidBossActive = EntIndexToEntRef(npc.index);
-			RaidModeTime = GetGameTime(npc.index) + 200.0;
+			RaidModeTime = GetGameTime(npc.index) + 300.0;  // 5 minute timer
 			RaidAllowsBuildings = true;
 			RaidModeScaling = MultiGlobalHealth;
 			if(RaidModeScaling == 1.0)
 				RaidModeScaling = 0.0;
 			else
-				RaidModeScaling *= 1.5;
+				RaidModeScaling *= 2.0;  // Harder scaling
 		}
 		
+		npc.m_iHealthBar = 1;
 		b_thisNpcIsARaid[npc.index] = true;
 		npc.m_bThisNpcIsABoss = true;
-		npc.m_iHealthBar = 1;
 		
-		// Spawn message
-		for(int client_check = 1; client_check <= MaxClients; client_check++)
+		// Security protocol activation messages
+		if(i_RaidGrantExtra[npc.index] == 1)
 		{
-			if(IsClientInGame(client_check) && !IsFakeClient(client_check))
-			{
-				LookAtTarget(client_check, npc.index);
-				SetGlobalTransTarget(client_check);
-				ShowGameText(client_check, "item_armor", 1, "%t", "Xeno Lab Security Arrived");
-			}
+			CPrintToChatAll("{red}[XENO LAB SECURITY PROTOCOL ACTIVATED]");
+			CPrintToChatAll("{crimson}Xeno Lab Security{default}: INTRUDERS DETECTED. INITIATING CONTAINMENT PROCEDURES.");
 		}
 		
-		CPrintToChatAll("{green}Xeno Lab Security{default}: LAB PROTOCOL ACTIVE. EXTERMINATE ABNORMALITY.");
+		npc.m_flSpeed = 200.0;
+		npc.m_flGetClosestTargetTime = 0.0;
+		npc.m_flNextRangedAttack = 0.0;
+		npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + 10.0;  // First infection circle
 		
-		// Set robot skin
-		int skin = 1;
-		SetEntProp(npc.index, Prop_Send, "m_nSkin", skin);
+		npc.m_flMeleeArmor = 1.1;
+		npc.m_flRangedArmor = 0.85;
 		
-		// Make base model invisible
-		SetEntityRenderColor(npc.index, .a = 0);
-		SetEntityRenderMode(npc.index, RENDER_TRANSCOLOR);
+		// Robot cosmetics (no minigun)
+		npc.m_iWearable1 = npc.EquipItem("head", "models/workshop/player/items/heavy/robo_heavy_chief/robo_heavy_chief.mdl");
 		
-		// Equip bot heavy model as wearable (this is the actual robot body)
-		npc.m_iWearable1 = npc.EquipItem("head", "models/bots/heavy/bot_heavy.mdl", _, skin);
+		SetEntityRenderColor(npc.index, 50, 200, 50, 255);
+		SetEntityRenderColor(npc.m_iWearable1, 50, 200, 50, 255);
 		
-		// Apply green robot color to bot model
-		int red = 0;
-		int green = 255;
-		int blue = 0;
-		SetEntityRenderMode(npc.m_iWearable1, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(npc.m_iWearable1, red, green, blue, 255);
-		
-		// Equip cosmetics on top of the robot body
-		npc.m_iWearable2 = npc.EquipItem("head", "models/workshop/player/items/heavy/spr18_tsar_platinum/spr18_tsar_platinum.mdl", _, skin);
-		npc.m_iWearable3 = npc.EquipItem("head", "models/workshop/player/items/heavy/sum23_hog_heels/sum23_hog_heels.mdl", _, skin);
-		npc.m_iWearable4 = npc.EquipItem("head", "models/player/items/all_class/awes_badge.mdl", _, skin);
-		
-		// Apply green color to all cosmetics
-		SetEntProp(npc.m_iWearable2, Prop_Send, "m_nSkin", skin);
-		SetEntProp(npc.m_iWearable3, Prop_Send, "m_nSkin", skin);
-		SetEntProp(npc.m_iWearable4, Prop_Send, "m_nSkin", skin);
-		
-		SetEntityRenderMode(npc.m_iWearable2, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(npc.m_iWearable2, red, green, blue, 255);
-		SetEntityRenderMode(npc.m_iWearable3, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(npc.m_iWearable3, red, green, blue, 255);
-		SetEntityRenderMode(npc.m_iWearable4, RENDER_TRANSCOLOR);
-		SetEntityRenderColor(npc.m_iWearable4, red, green, blue, 255);
-		
+		npc.PlaySecurityAlertSound();
 		npc.StartPathing();
 		
 		return npc;
@@ -250,104 +202,74 @@ methodmap XenoLabSecurity < CClotBody
 public void XenoLabSecurity_ClotThink(int iNPC)
 {
 	XenoLabSecurity npc = view_as<XenoLabSecurity>(iNPC);
-	float gameTime = GetGameTime(npc.index);
 	
-	// Raid mode time check
+	if(npc.m_flNextDelayTime > GetGameTime(npc.index))
+	{
+		return;
+	}
+	
+	npc.m_flNextDelayTime = GetGameTime(npc.index) + DEFAULT_UPDATE_DELAY_FLOAT;
+	npc.Update();
+	
 	if(RaidModeTime < GetGameTime())
 	{
 		ForcePlayerLoss();
 		RaidBossActive = INVALID_ENT_REFERENCE;
-		CPrintToChatAll("{green}Xeno Lab Security's lab protocol has been completed...");
+		CPrintToChatAll("{crimson}Xeno Lab Security{default}: CONTAINMENT SUCCESSFUL. ALL INTRUDERS ELIMINATED.");
 		func_NPCThink[npc.index] = INVALID_FUNCTION;
 		return;
 	}
 	
-	if(npc.m_flNextDelayTime > gameTime)
-		return;
-	
-	npc.m_flNextDelayTime = gameTime + DEFAULT_UPDATE_DELAY_FLOAT;
-	npc.Update();
-	
-	// Update health bar for raid 
-	if(IsValidEntity(EntRefToEntIndex(RaidBossActive)) && RaidBossActive != EntIndexToEntRef(npc.index))
-	{
-		for(int EnemyLoop; EnemyLoop <= MaxClients; EnemyLoop++)
-		{
-			if(IsValidClient(EnemyLoop))
-			{
-				Calculate_And_Display_hp(EnemyLoop, npc.index, 0.0, false);	
-			}	
-		}
-	}
-	else if(EntRefToEntIndex(RaidBossActive) != npc.index && !IsEntityAlive(EntRefToEntIndex(RaidBossActive)))
-	{	
-		RaidBossActive = EntIndexToEntRef(npc.index);
-	}
-
 	if(npc.m_blPlayHurtAnimation)
 	{
 		npc.AddGesture("ACT_MP_GESTURE_FLINCH_CHEST", false);
-		npc.PlayHurtSound();
 		npc.m_blPlayHurtAnimation = false;
+		npc.PlayHurtSound();
 	}
 	
-	if(npc.m_flNextThinkTime > gameTime)
-		return;
-	
-	npc.m_flNextThinkTime = gameTime + 0.1;
-
-	// Handle stomp attack animation and damage
-	if(npc.m_flAttackHappens)
+	if(npc.m_flNextThinkTime > GetGameTime(npc.index))
 	{
-		if(npc.m_flAttackHappens < gameTime)
+		return;
+	}
+	
+	npc.m_flNextThinkTime = GetGameTime(npc.index) + 0.1;
+	
+	// Infection circle ability with animation
+	if(npc.m_flNextRangedSpecialAttack < GetGameTime(npc.index))
+	{
+		if(npc.m_flDoingAnimation == 0.0)
 		{
-			npc.m_flAttackHappens = 0.0;
-			
-			if(npc.m_iChanged_WalkCycle == 2) // Stomp attack
-			{
-				// Deal damage
-				XenoLabSecurity_StompDamage(npc.index);
-				
-				// Return to normal movement
-				npc.m_bisWalking = true;
-				npc.m_flSpeed = 200.0;
-				npc.SetActivity("ACT_MP_RUN_MELEE");
-				npc.m_iChanged_WalkCycle = 0;
-				npc.StartPathing();
-			}
-			else // Normal melee
-			{
-				Handle swingTrace;
-				if(npc.DoSwingTrace(swingTrace, npc.m_iTarget))
-				{
-					int target = TR_GetEntityIndex(swingTrace);	
-					
-					float vecHit[3];
-					TR_GetEndPosition(vecHit, swingTrace);
-					
-					if(IsValidEnemy(npc.index, target))
-					{
-						float damageDealt = 65.0;
-						float DamageDoExtra = MultiGlobalHealth;
-						if(DamageDoExtra != 1.0)
-						{
-							DamageDoExtra *= 1.5;
-						}
-						damageDealt *= DamageDoExtra;
-						
-						SDKHooks_TakeDamage(target, npc.index, npc.index, damageDealt, DMG_CLUB, -1, _, vecHit);
-						npc.PlayMeleeHitSound();
-					} 
-				}
-				delete swingTrace;
-			}
+			// Start animation
+			npc.SetActivity("taunt_soviet_strongarm_end");
+			npc.m_flDoingAnimation = GetGameTime(npc.index) + 2.5;
+			npc.StopPathing();
+			npc.m_bisWalking = false;
+			npc.m_flSpeed = 0.0;
+			npc.PlayAngerSound();
+		}
+		else if(npc.m_flDoingAnimation < GetGameTime(npc.index))
+		{
+			// Animation finished, trigger infection and resume
+			npc.m_flNextRangedSpecialAttack = GetGameTime(npc.index) + 12.0;
+			npc.m_flDoingAnimation = 0.0;
+			Security_DoInfectionCircle(npc.index);
+			npc.m_flSpeed = 200.0;
+			npc.m_bisWalking = true;
+			int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
+			if(iActivity > 0) npc.StartActivity(iActivity);
+			npc.StartPathing();
+		}
+		else
+		{
+			// Still animating, don't do anything else
+			return;
 		}
 	}
-
-	if(npc.m_flGetClosestTargetTime < gameTime)
+	
+	if(npc.m_flGetClosestTargetTime < GetGameTime(npc.index))
 	{
 		npc.m_iTarget = GetClosestTarget(npc.index);
-		npc.m_flGetClosestTargetTime = gameTime + GetRandomRetargetTime();
+		npc.m_flGetClosestTargetTime = GetGameTime(npc.index) + GetRandomRetargetTime();
 	}
 	
 	if(IsValidEnemy(npc.index, npc.m_iTarget))
@@ -356,124 +278,36 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 		float VecSelfNpc[3]; WorldSpaceCenter(npc.index, VecSelfNpc);
 		float flDistanceToTarget = GetVectorDistance(vecTarget, VecSelfNpc, true);
 		
-		// Predict their position
-		if(flDistanceToTarget < npc.GetLeadRadius()) 
+		if(flDistanceToTarget < npc.GetLeadRadius())
 		{
-			float vPredictedPos[3]; 
+			float vPredictedPos[3];
 			PredictSubjectPosition(npc, npc.m_iTarget, _, _, vPredictedPos);
 			npc.SetGoalVector(vPredictedPos);
 		}
-		else 
+		else
 		{
 			npc.SetGoalEntity(npc.m_iTarget);
 		}
-
-		if(npc.m_flDoingAnimation > gameTime)
-		{
-			// Currently doing an animation
-			return;
-		}
-
-		if(flDistanceToTarget < (NORMAL_ENEMY_MELEE_RANGE_FLOAT_SQUARED * 1.25))
-		{
-			int Enemy_I_See;
-			Enemy_I_See = Can_I_See_Enemy(npc.index, npc.m_iTarget);
-
-			if(IsValidEnemy(npc.index, Enemy_I_See))
-			{
-				npc.m_iTarget = Enemy_I_See;
-
-				if(npc.m_flNextMeleeAttack < gameTime)
-				{
-					// Alternate between stomp and normal melee
-					if(npc.m_bNextAttackIsStomp)
-					{
-						// STOMP ATTACK
-						npc.m_bNextAttackIsStomp = false;
-						npc.m_flNextMeleeAttack = gameTime + 4.0;
-						npc.m_flAttackHappens = gameTime + STOMP_DELAY;
-						npc.m_flDoingAnimation = gameTime + STOMP_DELAY + 0.5;
-						
-						// Use sequence like Vincent does for stuff
-						npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
-						npc.SetCycle(0.05);
-						npc.SetPlaybackRate(0.5);
-						npc.m_iChanged_WalkCycle = 2;
-						npc.m_bisWalking = false;
-						npc.m_flSpeed = 0.0;
-						npc.StopPathing();
-						
-						npc.PlayPrepareSlamSound();
-						npc.PlayStompSound();
-						
-						// Summon warning circle
-						float myPos[3];
-						GetEntPropVector(npc.index, Prop_Data, "m_vecAbsOrigin", myPos);
-						myPos[2] += 10.0;
-						
-						spawnRing_Vectors(myPos, STOMP_RANGE * 2.0, 0.0, 0.0, 5.0, "materials/sprites/laserbeam.vmt", 0, 255, 0, 200, 1, STOMP_DELAY, 6.0, 0.1, 1);
-						spawnRing_Vectors(myPos, 0.0, 0.0, 0.0, 5.0, "materials/sprites/laserbeam.vmt", 0, 255, 0, 200, 1, STOMP_DELAY, 6.0, 0.1, 1, STOMP_RANGE * 2.0);
-					}
-					else
-					{
-						// NORMAL MELEE
-						npc.m_bNextAttackIsStomp = true;
-						npc.m_flNextMeleeAttack = gameTime + 1.0;
-						npc.m_flAttackHappens = gameTime + 0.4;
-						npc.m_flDoingAnimation = gameTime + 0.8;
-						
-						npc.AddGesture("ACT_MP_ATTACK_STAND_MELEE");
-						npc.PlayMeleeSound();
-					}
-				}
-			}
-		}
+		
+		Security_SelfDefense(npc, GetGameTime(npc.index), npc.m_iTarget, flDistanceToTarget);
 	}
 	else
 	{
 		npc.m_flGetClosestTargetTime = 0.0;
 		npc.m_iTarget = GetClosestTarget(npc.index);
 	}
-}
-
-void XenoLabSecurity_StompDamage(int entity)
-{
-	float myPos[3];
-	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", myPos);
-	myPos[2] += 10.0;
 	
-	// Visual effects
-	int particle = ParticleEffectAt(myPos, "green_wof_sparks", 1.0);
-	float ang[3];
-	ang[0] = -90.0;
-	TeleportEntity(particle, NULL_VECTOR, ang, NULL_VECTOR);
-	
-	EmitSoundToAll("weapons/physcannon/energy_sing_explosion2.wav", 0, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, myPos);
-	
-	XenoLabSecurity npc = view_as<XenoLabSecurity>(entity);
-	npc.PlaySlamSound();
-	
-	// Calculate scaled damage
-	float damage = STOMP_DAMAGE;
-	float DamageDoExtra = MultiGlobalHealth;
-	if(DamageDoExtra != 1.0)
-	{
-		DamageDoExtra *= 1.5;
-	}
-	damage *= DamageDoExtra;
-	
-	// Deal damage with infection effect
-	Explode_Logic_Custom(damage, entity, entity, -1, myPos, STOMP_RANGE, _, _, true, _, _, 1.0, RobotStompInfection);
+	npc.PlayIdleSound();
 }
 
 public Action XenoLabSecurity_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom)
 {
 	XenoLabSecurity npc = view_as<XenoLabSecurity>(victim);
-		
+	
 	if(attacker <= 0)
 		return Plugin_Continue;
 	
-	if (npc.m_flHeadshotCooldown < GetGameTime(npc.index))
+	if(npc.m_flHeadshotCooldown < GetGameTime(npc.index))
 	{
 		npc.m_flHeadshotCooldown = GetGameTime(npc.index) + DEFAULT_HURTDELAY;
 		npc.m_blPlayHurtAnimation = true;
@@ -486,111 +320,143 @@ public void XenoLabSecurity_NPCDeath(int entity)
 {
 	XenoLabSecurity npc = view_as<XenoLabSecurity>(entity);
 	
-	if(!npc.m_bDissapearOnDeath)
+	if(!npc.m_bGib)
 	{
 		npc.PlayDeathSound();
-	}
-	
-	// Handle raid boss death
-	if(i_RaidGrantExtra[npc.index] == 1 && GameRules_GetRoundState() == RoundState_ZombieRiot)
-	{
-		for(int client_repat = 1; client_repat <= MaxClients; client_repat++)
-		{
-			if(IsClientInGame(client_repat) && GetClientTeam(client_repat) == 2 && TeutonType[client_repat] != TEUTON_WAITING)
-			{
-				Items_GiveNamedItem(client_repat, "Infected Circuit Board");
-				CPrintToChat(client_repat, "{default}You destroyed the Xeno Security and gained: {green}''Infected Circuit Board''{default}!");
-			}
-		}
 	}
 	
 	if(IsValidEntity(npc.m_iWearable1))
 		RemoveEntity(npc.m_iWearable1);
 	if(IsValidEntity(npc.m_iWearable2))
 		RemoveEntity(npc.m_iWearable2);
-	if(IsValidEntity(npc.m_iWearable3))
-		RemoveEntity(npc.m_iWearable3);
-	if(IsValidEntity(npc.m_iWearable4))
-		RemoveEntity(npc.m_iWearable4);
-	if(IsValidEntity(npc.m_iWearable5))
-		RemoveEntity(npc.m_iWearable5);
-	if(IsValidEntity(npc.m_iWearable6))
-		RemoveEntity(npc.m_iWearable6);
+	
+	if(i_RaidGrantExtra[npc.index] == 1)
+	{
+		CPrintToChatAll("{crimson}Xeno Lab Security{default}: CRITICAL SYSTEM FAILURE... CONTAINMENT... BREACH...");
+	}
 }
 
-void RobotStompInfection(int entity, int victim, float damage, int weapon)
+void Security_SelfDefense(XenoLabSecurity npc, float gameTime, int target, float distance)
 {
-	if(f_RobotStompInfectionImmunity[victim] < GetGameTime())
+	if(npc.m_flAttackHappens)
 	{
-		// Only infect players, not NPCs
-		if(IsValidClient(victim) && !IsInvuln(victim))
+		if(npc.m_flAttackHappens < gameTime)
 		{
-			f_RobotStompInfectionImmunity[victim] = GetGameTime() + 15.0;
+			npc.m_flAttackHappens = 0.0;
 			
-			float HudY = -1.0;
-			float HudX = -1.0;
-			SetHudTextParams(HudX, HudY, 3.0, 50, 255, 50, 255);
-			ShowHudText(victim, -1, "You have been infected by the Security's Protocol!");
+			Handle swingTrace;
+			float VecEnemy[3]; WorldSpaceCenter(npc.m_iTarget, VecEnemy);
+			npc.FaceTowards(VecEnemy, 15000.0);
 			
-			ClientCommand(victim, "playgamesound items/powerup_pickup_plague_infected.wav");
-			
-			// Apply infection: deal damage over time
-			DataPack pack;
-			CreateDataTimer(1.0, Timer_InfectionDamage, pack, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-			pack.WriteCell(GetClientUserId(victim));
-			pack.WriteCell(EntIndexToEntRef(entity));
-			pack.WriteCell(15); // 15 ticks
-			pack.WriteFloat(150.0); // 150 damage per tick
+			if(npc.DoSwingTrace(swingTrace, npc.m_iTarget))
+			{
+				target = TR_GetEntityIndex(swingTrace);
+				float vecHit[3];
+				TR_GetEndPosition(vecHit, swingTrace);
+				
+				if(IsValidEnemy(npc.index, target))
+				{
+					float damageDealt = 350.0;
+					if(ShouldNpcDealBonusDamage(target))
+						damageDealt *= 5.0;
+					
+					float DamageDoExtra = MultiGlobalHealth;
+					if(DamageDoExtra != 1.0)
+						DamageDoExtra *= 2.0;
+					
+					damageDealt *= DamageDoExtra;
+					
+					SDKHooks_TakeDamage(target, npc.index, npc.index, damageDealt, DMG_CLUB, -1, _, vecHit);
+					npc.PlayMeleeHitSound();
+				}
+			}
+			delete swingTrace;
 		}
 	}
+	
+	if(gameTime > npc.m_flNextMeleeAttack)
+	{
+		if(distance < (GIANT_ENEMY_MELEE_RANGE_FLOAT_SQUARED))
+		{
+			int Enemy_I_See = Can_I_See_Enemy(npc.index, npc.m_iTarget);
+			
+			if(IsValidEnemy(npc.index, Enemy_I_See))
+			{
+				npc.m_iTarget = Enemy_I_See;
+				npc.PlayMeleeSound();
+				npc.AddGesture("ACT_MP_ATTACK_STAND_MELEE");
+				
+				npc.m_flAttackHappens = gameTime + 0.4;
+				npc.m_flDoingAnimation = gameTime + 0.4;
+				npc.m_flNextMeleeAttack = gameTime + 1.2;
+			}
+		}
+	}
+	
 }
 
-public Action Timer_InfectionDamage(Handle timer, DataPack pack)
+#define MAX_SECURITY_TARGETS 64
+
+void Security_DoInfectionCircle(int entity)
+{
+	float Security_Loc[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", Security_Loc);
+	Security_Loc[2] += 45.0;
+	
+	// Create large warning circles (bigger than Calmaticus)
+	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE * 4.0, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 50, 255, 50, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
+	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE * 3.0, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 100, 255, 100, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
+	
+	float Security_Ang[3];
+	Security_Ang = {-90.0, 0.0, 0.0};
+	int particle = ParticleEffectAt(Security_Loc, "green_steam_plume", SecurityInfectionDelay());
+	TeleportEntity(particle, NULL_VECTOR, Security_Ang, NULL_VECTOR);
+	
+	DataPack pack;
+	CreateDataTimer(SecurityInfectionDelay(), Security_DoInfectionCircleInternal, pack, TIMER_FLAG_NO_MAPCHANGE);
+	pack.WriteCell(EntIndexToEntRef(entity));
+}
+
+public Action Security_DoInfectionCircleInternal(Handle timer, DataPack pack)
 {
 	pack.Reset();
-	int userid = pack.ReadCell();
-	int victim = GetClientOfUserId(userid);
+	int entity = EntRefToEntIndex(pack.ReadCell());
 	
-	if(victim == 0 || !IsClientInGame(victim) || !IsPlayerAlive(victim))
+	if(!IsValidEntity(entity))
 		return Plugin_Stop;
 	
-	int attackerRef = pack.ReadCell();
-	int attacker = EntRefToEntIndex(attackerRef);
+	float Security_Loc[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", Security_Loc);
+	Security_Loc[2] += 10.0;
 	
-	if(attacker == INVALID_ENT_REFERENCE)
-		attacker = 0;
+	// Damage all enemies in range
+	Explode_Logic_Custom(400.0, entity, entity, -1, Security_Loc, SECURITY_INFECTION_RANGE * 3.5, _, _, true, _, _, 1.0, SecurityHitInfection);
 	
-	int ticksRemaining = pack.ReadCell();
-	float damagePerTick = pack.ReadFloat();
+	int particle = ParticleEffectAt(Security_Loc, "green_wof_sparks", 1.5);
+	float Ang[3];
+	Ang[0] = -90.0;
+	TeleportEntity(particle, NULL_VECTOR, Ang, NULL_VECTOR);
 	
-	// Apply scaling
-	float DamageDoExtra = MultiGlobalHealth;
-	if(DamageDoExtra != 1.0)
+	EmitSoundToAll("weapons/cow_mangler_explode.wav", 0, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, SNDVOL_NORMAL, SNDPITCH_NORMAL, -1, Security_Loc);
+	
+	return Plugin_Stop;
+}
+
+void SecurityHitInfection(int entity, int victim, float damage, int weapon)
+{
+	if(IsValidClient(victim) && !IsInvuln(victim))
 	{
-		DamageDoExtra *= 1.5;
+		float HudY = -1.0;
+		float HudX = -1.0;
+		SetHudTextParams(HudX, HudY, 3.0, 50, 255, 50, 255);
+		ShowHudText(victim, -1, "You have been infected by Xeno Security!");
+		ClientCommand(victim, "playgamesound items/cart_explode.wav");
+		
+		// Apply damage over time
+		int InfectionCount = 10;
+		StartBleedingTimer(victim, entity, 100.0, InfectionCount, -1, DMG_SLASH, 0, 1);
+		
+		// Slow effect
+		TF2_StunPlayer(victim, 2.0, 0.5, TF_STUNFLAG_SLOWDOWN);
 	}
-	float scaledDamage = damagePerTick * DamageDoExtra;
-	
-	// Deal damage
-	SDKHooks_TakeDamage(victim, attacker, attacker, scaledDamage, DMG_PREVENT_PHYSICS_FORCE, -1);
-	
-	// Show visual effect
-	float victimPos[3];
-	GetClientAbsOrigin(victim, victimPos);
-	victimPos[2] += 50.0;
-	TE_Particle("env_sawblood", victimPos, NULL_VECTOR, NULL_VECTOR, _, _, _, _, _, _, _, _, _, _, 0.0);
-	
-	ticksRemaining--;
-	
-	if(ticksRemaining <= 0)
-		return Plugin_Stop;
-	
-	// Update pack for next iteration
-	pack.Reset();
-	pack.WriteCell(userid);
-	pack.WriteCell(attackerRef);
-	pack.WriteCell(ticksRemaining);
-	pack.WriteFloat(damagePerTick);
-	
-	return Plugin_Continue;
 }
