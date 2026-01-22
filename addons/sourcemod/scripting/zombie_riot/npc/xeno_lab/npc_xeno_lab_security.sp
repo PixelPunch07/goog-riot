@@ -447,9 +447,9 @@ void Security_DoInfectionCircle(int entity)
 	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", Security_Loc);
 	Security_Loc[2] += 45.0;
 	
-	// Create warning circles that match damage radius
-	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 50, 255, 50, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
-	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 100, 255, 100, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
+	// Create large warning circles (visual only, bigger than actual damage)
+	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE * 2.5, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 50, 255, 50, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
+	spawnRing_Vectors(Security_Loc, SECURITY_INFECTION_RANGE * 2.5, 0.0, 0.0, 10.0, "materials/sprites/laserbeam.vmt", 100, 255, 100, 200, 1, SecurityInfectionDelay(), 6.0, 8.0, 1, 1.0);
 	
 	float Security_Ang[3];
 	Security_Ang = {-90.0, 0.0, 0.0};
