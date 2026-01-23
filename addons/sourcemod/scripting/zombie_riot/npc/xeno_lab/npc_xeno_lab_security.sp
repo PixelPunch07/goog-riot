@@ -214,14 +214,6 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	}
 	
 	npc.m_flNextDelayTime = GetGameTime(npc.index) + DEFAULT_UPDATE_DELAY_FLOAT;
-	
-	// Check if currently doing infection animation BEFORE Update() - if so, skip everything else
-	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
-	{
-		// Still doing infection animation, don't do anything else
-		return;
-	}
-	
 	npc.Update();
 	
 	if(RaidModeTime < GetGameTime())
@@ -247,6 +239,13 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	
 	npc.m_flNextThinkTime = GetGameTime(npc.index) + 0.1;
 	
+	// Check if doing infection animation - return early if still animating
+	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
+	{
+		// Still doing animation, skip all other logic
+		return;
+	}
+	
 	// Infection circle ability with animation
 	if(npc.m_flNextRangedSpecialAttack < GetGameTime(npc.index))
 	{
@@ -256,8 +255,8 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 		npc.m_iChanged_WalkCycle = 3;  // Set this to prevent walk cycle from being reapplied
 		npc.StopPathing();
 		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
-		npc.SetCycle(0.01);
-		npc.SetPlaybackRate(0.75);
+		npc.SetCycle(0.05);  // Match Vincent's cycle start
+		npc.SetPlaybackRate(0.5);  // Match Vincent's playback rate
 		npc.PlayAngerSound();
 		
 		// Set animation duration
