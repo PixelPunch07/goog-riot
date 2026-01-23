@@ -208,6 +208,13 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 {
 	XenoLabSecurity npc = view_as<XenoLabSecurity>(iNPC);
 	
+	// Check if currently doing infection animation - if so, skip everything else
+	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
+	{
+		// Still doing infection animation, don't do anything else
+		return;
+	}
+	
 	if(npc.m_flNextDelayTime > GetGameTime(npc.index))
 	{
 		return;
@@ -239,24 +246,16 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	
 	npc.m_flNextThinkTime = GetGameTime(npc.index) + 0.1;
 	
-	// Check if currently doing infection animation - if so, skip everything else
-	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
-	{
-		// Still doing infection animation, don't do anything else
-		return;
-	}
-	
 	// Infection circle ability with animation
 	if(npc.m_flNextRangedSpecialAttack < GetGameTime(npc.index))
 	{
 		// Start animation
 		npc.m_flSpeed = 0.0;
 		npc.m_bisWalking = false;
-		npc.m_iChanged_WalkCycle = 3;
+		npc.StopPathing();
 		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
 		npc.SetCycle(0.01);
 		npc.SetPlaybackRate(0.75);
-		npc.StopPathing();
 		npc.PlayAngerSound();
 		
 		// Set animation duration
