@@ -208,19 +208,20 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 {
 	XenoLabSecurity npc = view_as<XenoLabSecurity>(iNPC);
 	
-	// Check if currently doing infection animation - if so, skip everything else
-	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
-	{
-		// Still doing infection animation, don't do anything else
-		return;
-	}
-	
 	if(npc.m_flNextDelayTime > GetGameTime(npc.index))
 	{
 		return;
 	}
 	
 	npc.m_flNextDelayTime = GetGameTime(npc.index) + DEFAULT_UPDATE_DELAY_FLOAT;
+	
+	// Check if currently doing infection animation BEFORE Update() - if so, skip everything else
+	if(npc.m_flDoingAnimation > GetGameTime(npc.index))
+	{
+		// Still doing infection animation, don't do anything else
+		return;
+	}
+	
 	npc.Update();
 	
 	if(RaidModeTime < GetGameTime())
@@ -252,6 +253,7 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 		// Start animation
 		npc.m_flSpeed = 0.0;
 		npc.m_bisWalking = false;
+		npc.m_iChanged_WalkCycle = 3;  // Set this to prevent walk cycle from being reapplied
 		npc.StopPathing();
 		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
 		npc.SetCycle(0.01);
@@ -323,6 +325,7 @@ public Action Timer_SecurityFinishAnimation(Handle timer, DataPack pack)
 	// Resume normal movement
 	npc.m_flSpeed = 300.0;
 	npc.m_bisWalking = true;
+	npc.m_iChanged_WalkCycle = 0;  // Reset walk cycle
 	int iActivity = npc.LookupActivity("ACT_MP_RUN_MELEE");
 	if(iActivity > 0) npc.StartActivity(iActivity);
 	npc.StartPathing();
