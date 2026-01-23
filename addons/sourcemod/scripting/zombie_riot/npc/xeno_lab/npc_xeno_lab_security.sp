@@ -250,13 +250,13 @@ public void XenoLabSecurity_ClotThink(int iNPC)
 	if(npc.m_flNextRangedSpecialAttack < GetGameTime(npc.index))
 	{
 		// Start animation
-		npc.m_flSpeed = 0.0;
+		npc.m_iChanged_WalkCycle = 2;  // Different cycle number
 		npc.m_bisWalking = false;
-		npc.m_iChanged_WalkCycle = 3;  // Set this to prevent walk cycle from being reapplied
 		npc.StopPathing();
-		npc.AddActivityViaSequence("taunt_soviet_strongarm_end");
-		npc.SetCycle(0.05);  // Match Vincent's cycle start
-		npc.SetPlaybackRate(0.5);  // Match Vincent's playback rate
+		npc.m_flSpeed = 0.0;
+		
+		// Try the clap taunt that Vincent uses for slam
+		npc.AddActivityViaSequence("layer_taunt_commending_clap_heavy");
 		npc.PlayAngerSound();
 		
 		// Set animation duration
